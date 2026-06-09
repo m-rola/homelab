@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "========================================="
+echo "AI REVIEW BEFORE PUSH"
+echo "========================================="
+
+BRANCH=$(git branch --show-current)
+echo "Current branch: $BRANCH"
+
+# Fetch latest refs (best-effort)
+git fetch origin >/dev/null 2>&1 || true
+
+# Build diff — handle case where branch doesn't exist on origin yet
+if git rev-parse "origin/$BRANCH" >/dev/null 2>&1; then
+  DIFF=$(git diff "origin/$BRANCH...HEAD")
+else
+  echo "Branch not on origin yet — diffing against HEAD"
+  DIFF=$(git show HEAD)
+fi
+
+if [ -z "$DIFF" ]; then
+  echo "No changes detected"
+  exit 0
+fi
+
+echo "Running linters..."
+
+# YAML
+if command -v yamllint >/dev/null 2>&1; then
+  yamllint compose/ config/ 2>/dev/null || true
+fi
+
+# Shell scripts
+if command -v shellcheck >/dev/null 2>&1; then
+  find . -name "*.sh" -not -path "./.git/*" -exec shellcheck {} +
+fi
+
+# Dockerfiles
+if command -v hadolint >/dev/null 2>&1; then
+  find . -iname "Dockerfile*" -not -path "./.git/*" -exec hadolint {} +
+fi
+
+echo "Running Claude review..."
+
+PROMPT=$(cat <<EOF
+Review this git diff for a Raspberry Pi homelab project (Docker Compose stack).
+
+Focus on:
+- secrets or credentials accidentally committed (.env values, tokens, real IPs beyond LAN RFC 1918)
+- bash script risks (unquoted variables, missing set -euo pipefail, hardcoded paths)
+- Docker Compose problems (missing healthcheck, no resource limits, env_file leaking secrets)
+- security issues (exposed ports, missing no-new-privileges, overly permissive caps)
+- breaking changes to backup, restore, or cron jobs
+- dangerous network or firewall config changes
+- Pi-hole / DNS misconfigurations
+- performance issues on constrained hardware (RPi 4, SD card writes)
+- maintainability issues
+
+If there are critical problems, start your response with: BLOCK_PUSH
+Otherwise start with: OK
+
+Git diff:
+
+$DIFF
+EOF
+)
+
+# RESULT=$(timeout 60 claude -p "$PROMPT" 2>&1) || {
+#   echo "⚠️  Claude review timed out or failed — allowing push"
+#   exit 0
+# }
+
+if ! RESULT=$(timeout 120 bash -c 'cat | claude' <<< "$PROMPT"); then
+  echo "❌ Claude review timed out or failed — blocking push"
+  exit 1
+fi
+
+echo "$RESULT"
+
+if echo "$RESULT" | grep -q "^BLOCK_PUSH"; then
+  echo ""
+  echo "❌ PUSH BLOCKED BY AI REVIEW"
+  exit 1
+fi
+
+echo ""
+echo "✅ PUSH ALLOWED"

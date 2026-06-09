@@ -263,6 +263,9 @@ All secrets live in a single `.env` file at the repo root. It is gitignored — 
 | `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Chat ID for alert delivery |
 | `CF_API_TOKEN` | Cloudflare scoped API token (Zone → DNS → Edit) |
+| `BACKUP_CRON` | Cron schedule for automated backups (default: `0 2 * * *`); re-run `make install` after changing |
+| `BACKUP_RETENTION_DAYS` | Days to keep local backups before pruning (default: `14`) |
+| `BACKUP_ROOT` | Custom backup storage path (default: `~/homelab/backups`); useful for NAS mounts |
 
 Full annotated template: [`.env.example`](.env.example)
 

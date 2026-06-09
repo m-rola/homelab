@@ -3,8 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOMELAB_DIR="$(dirname "$SCRIPT_DIR")"
-BACKUP_ROOT="$HOMELAB_DIR/backups"
 DATA_DIR="$HOMELAB_DIR/data"
+
+_env_val() { grep -E "^${1}=" "$HOMELAB_DIR/.env" 2>/dev/null | cut -d= -f2- | head -1 || true; }
+_custom_root="$(_env_val BACKUP_ROOT)"
+BACKUP_ROOT="${BACKUP_ROOT:-${_custom_root:-$HOMELAB_DIR/backups}}"
+unset _custom_root; unset -f _env_val
 
 if [[ ! -f "$HOMELAB_DIR/.env" ]]; then
   echo "ERROR: Missing $HOMELAB_DIR/.env"

@@ -1,0 +1,23 @@
+---
+# Full deploy from a fresh RPi to a running homelab.
+# Run: ansible-playbook site.yml
+#
+# Tags:
+#   --tags base      — OS hardening only
+#   --tags docker    — Docker installation only
+#   --tags services  — repo clone + .env + service start only
+
+- name: Bootstrap Raspberry Pi homelab
+  hosts: rpi
+  vars_files:
+    - vault.yml
+
+  roles:
+    - role: base
+      tags: base
+
+    - role: docker
+      tags: docker
+
+    - role: services
+      tags: services

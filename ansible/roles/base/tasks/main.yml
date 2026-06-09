@@ -1,0 +1,135 @@
+---
+# Equivalent of provision.sh — idempotent, safe to re-run.
+
+# ── Hostname ──────────────────────────────────────────────────────────────────
+- name: Set hostname
+  hostname:
+    name: "{{ hostname }}"
+
+- name: Update /etc/hosts with hostname
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1'
+    line: "127.0.1.1 {{ hostname }}"
+
+# ── Timezone ──────────────────────────────────────────────────────────────────
+- name: Set timezone
+  timezone:
+    name: "{{ timezone }}"
+
+# ── Time sync (must run before apt — RPi has no RTC, wrong clock breaks signature verification) ───
+- name: Ensure systemd-timesyncd is enabled and started
+  service:
+    name: systemd-timesyncd
+    state: started
+    enabled: true
+
+- name: Set NTP servers by IP (no DNS required)
+  lineinfile:
+    path: /etc/systemd/timesyncd.conf
+    regexp: '^#?NTP='
+    line: 'NTP=216.239.35.0 216.239.35.4 185.125.190.56 185.125.190.57'
+
+- name: Disable NTP to allow manual time set
+  command: timedatectl set-ntp false
+  when: not ansible_check_mode
+
+- name: Set system time from Ansible controller (Pi has no RTC)
+  command: timedatectl set-time "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+  when: not ansible_check_mode
+
+- name: Enable NTP
+  command: timedatectl set-ntp true
+  when: not ansible_check_mode
+
+# ── Packages ──────────────────────────────────────────────────────────────────
+- name: Update apt cache and upgrade packages
+  apt:
+    update_cache: true
+    upgrade: dist
+    cache_valid_time: 3600
+
+- name: Install base packages
+  apt:
+    name:
+      - git
+      - curl
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - dnsutils
+      - vim
+      - htop
+      - btop
+      - iotop
+      - sysstat
+      - logrotate
+      - fail2ban
+    state: present
+
+# ── Swap ──────────────────────────────────────────────────────────────────────
+- name: Check if swapfile exists
+  stat:
+    path: /swapfile
+  register: swapfile_stat
+
+- name: Create and enable swapfile
+  shell: |
+    fallocate -l {{ swap_size }} /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile || true
+  args:
+    creates: /swapfile
+  when: not swapfile_stat.stat.exists
+
+- name: Add swapfile to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: '/swapfile none swap sw 0 0'
+    create: true
+
+- name: Set vm.swappiness to 10
+  sysctl:
+    name: vm.swappiness
+    value: '10'
+    sysctl_file: /etc/sysctl.d/99-homelab.conf
+    reload: true
+
+# ── GPU memory (headless) ─────────────────────────────────────────────────────
+- name: Set gpu_mem=16 for headless RPi
+  lineinfile:
+    path: /boot/firmware/config.txt
+    regexp: '^gpu_mem='
+    line: 'gpu_mem=16'
+    create: true
+  ignore_errors: true   # /boot/firmware may not exist on older images
+
+- name: Set gpu_mem=16 (fallback path)
+  lineinfile:
+    path: /boot/config.txt
+    regexp: '^gpu_mem='
+    line: 'gpu_mem=16'
+    create: true
+  ignore_errors: true
+
+# ── fail2ban ──────────────────────────────────────────────────────────────────
+- name: Enable and start fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# ── SSH hardening ─────────────────────────────────────────────────────────────
+# IMPORTANT: Ensure your SSH key is in ~/.ssh/authorized_keys before running this!
+- name: Deploy SSH hardening config
+  copy:
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+      MaxAuthTries 3
+      X11Forwarding no
+    dest: /etc/ssh/sshd_config.d/99-homelab.conf
+    mode: '0644'
+  notify: reload sshd

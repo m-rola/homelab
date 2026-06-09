@@ -1,6 +1,8 @@
-#AI
+# Ansible
+ansible/vault.yml
+
+# AI
 .claude/
-.githooks/
 .yamllint.yml
 
 # secrets

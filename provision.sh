@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Homelab OS provisioning for Raspberry Pi OS (Debian Bookworm, headless)
-# Run once on a fresh install, from inside the cloned repo.
+# Legacy bootstrap script — kept as a fallback for manual provisioning.
+# Preferred method: Ansible (see ansible/README.md)
 # Usage: sudo ./provision.sh
 #
 # Environment overrides:

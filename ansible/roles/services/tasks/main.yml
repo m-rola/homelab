@@ -1,0 +1,50 @@
+---
+- name: Clone homelab repository
+  git:
+    repo: "{{ homelab_repo }}"
+    dest: "{{ homelab_dir }}"
+    version: "{{ homelab_branch }}"
+    update: true
+    force: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Set repo ownership
+  file:
+    path: "{{ homelab_dir }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    recurse: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Generate .env from vault
+  template:
+    src: env.j2
+    dest: "{{ homelab_dir }}/.env"
+    mode: '0600'
+    owner: "{{ ansible_user }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Ensure unbound config files exist as files (remove if accidentally created as dirs)
+  shell: |
+    f="{{ homelab_dir }}/data/unbound/opt/unbound/etc/unbound/{{ item }}"
+    mkdir -p "$(dirname "$f")"
+    [ -d "$f" ] && rm -rf "$f"
+    [ -f "$f" ] || touch "$f"
+  args:
+    executable: /bin/bash
+  loop:
+    - forward-records.conf
+    - a-records.conf
+  changed_when: false
+
+- name: Start services
+  shell: >
+    docker compose
+    --env-file {{ homelab_dir }}/.env
+    --env-file {{ homelab_dir }}/versions.env
+    -f {{ homelab_dir }}/compose/{{ item }}/docker-compose.yml
+    up -d
+  loop: "{{ services }}"
+  register: compose_result
+  changed_when: "'Started' in compose_result.stdout or 'Created' in compose_result.stdout"
+  ignore_errors: "{{ ansible_check_mode }}"

@@ -9,6 +9,10 @@ CRON_FILE="/tmp/homelab-cron"
 mkdir -p "$HOMELAB_DIR/logs"
 mkdir -p "$HOMELAB_DIR/backups"
 
+# Read backup schedule from .env if set, otherwise use default
+BACKUP_CRON="${BACKUP_CRON:-$(grep -E '^BACKUP_CRON=' "$HOMELAB_DIR/.env" 2>/dev/null | cut -d= -f2- | head -1)}"
+BACKUP_CRON="${BACKUP_CRON:-0 2 * * *}"
+
 crontab -l 2>/dev/null > "$CRON_FILE" || true
 
 sed -i '/# homelab-start/,/# homelab-end/d' "$CRON_FILE"
@@ -32,8 +36,8 @@ cat >> "$CRON_FILE" <<EOF
 # Weekly version check (Monday 08:00) — sends Telegram if updates available
 0 8 * * 1 /bin/bash ${HOMELAB_DIR}/scripts/check-updates.sh --notify >> ${HOMELAB_DIR}/logs/cron.log 2>&1
 
-# Daily backup at 02:00
-0 2 * * * /bin/bash ${HOMELAB_DIR}/scripts/backup.sh >> ${HOMELAB_DIR}/logs/backup.log 2>&1
+# Backup — schedule from BACKUP_CRON in .env (default: daily at 02:00)
+${BACKUP_CRON} /bin/bash ${HOMELAB_DIR}/scripts/backup.sh >> ${HOMELAB_DIR}/logs/backup.log 2>&1
 
 # Daily RPi report at 09:00
 0 9 * * * /bin/bash ${HOMELAB_DIR}/scripts/rpi-report.sh >> ${HOMELAB_DIR}/logs/cron.log 2>&1
