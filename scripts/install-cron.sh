@@ -7,7 +7,6 @@ HOMELAB_DIR="$(dirname "$SCRIPT_DIR")"
 CRON_FILE="/tmp/homelab-cron"
 
 mkdir -p "$HOMELAB_DIR/logs"
-mkdir -p "$HOMELAB_DIR/backups"
 
 # Read backup schedule from .env if set, otherwise use default
 BACKUP_CRON="${BACKUP_CRON:-$(grep -E '^BACKUP_CRON=' "$HOMELAB_DIR/.env" 2>/dev/null | cut -d= -f2- | head -1)}"

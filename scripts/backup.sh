@@ -17,7 +17,7 @@ BACKUP_ROOT="${BACKUP_ROOT:-${_custom_root:-$HOMELAB_DIR/backups}}"
 unset _custom_root; unset -f _env_val
 
 BACKUP_DIR="$BACKUP_ROOT/$DATE"
-LOG_FILE="$BACKUP_ROOT/backup.log"
+LOG_FILE="$HOMELAB_DIR/logs/backup.log"
 
 if ! sudo -n true 2>/dev/null; then
   echo "ERROR: sudo requires a password — backup cannot run unattended."
@@ -31,6 +31,8 @@ mkdir -p "$BACKUP_DIR"
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
+
+trap 'log "BACKUP FAILED"; "$SCRIPT_DIR/telegram.sh" "❌ Backup FAILED on rpi — check $LOG_FILE" 2>/dev/null || true' ERR
 
 backup_folder() {
   NAME=$1
