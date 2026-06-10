@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOMELAB_DIR="$(dirname "$SCRIPT_DIR")"
 TELEGRAM_SCRIPT="$SCRIPT_DIR/telegram.sh"
 
+_env_val() { grep -E "^${1}=" "$HOMELAB_DIR/.env" 2>/dev/null | cut -d= -f2- | head -1 || true; }
+_custom_root="$(_env_val BACKUP_ROOT)"
+BACKUP_ROOT="${BACKUP_ROOT:-${_custom_root:-$HOMELAB_DIR/backups}}"
+unset _custom_root; unset -f _env_val
+
 LOCAL_TEST_DOMAIN="${LOCAL_TEST_DOMAIN:-}"
 DISK_ALERT_THRESHOLD="${DISK_ALERT_THRESHOLD:-80}"
 TEMP_ALERT_THRESHOLD="${TEMP_ALERT_THRESHOLD:-70}"
@@ -84,14 +89,14 @@ DNS_UNBOUND=$(safe "dig +short google.com @127.0.0.1 -p 5335 | head -1")
 LOCAL_DOMAIN=$(safe "[ -n \"$LOCAL_TEST_DOMAIN\" ] && dig +short \"$LOCAL_TEST_DOMAIN\" @127.0.0.1 | head -1 || echo 'not configured'")
 
 # --- CrowdSec ---
-CROWDSEC_ALERTS=$(safe "docker exec crowdsec cscli alerts list --limit 5 2>/dev/null | head -20")
-CROWDSEC_DECISIONS=$(safe "docker exec crowdsec cscli decisions list 2>/dev/null | head -20")
+CROWDSEC_ALERTS=$(safe "docker exec crowdsec cscli alerts list --limit 5 2>/dev/null | tail -n +3 | head -5")
+CROWDSEC_DECISIONS=$(safe "docker exec crowdsec cscli decisions list 2>/dev/null | tail -n +3 | head -5")
 
 # --- NetAlertX ---
 NETALERT_DEVICES=$(safe "docker exec NetAlertX sqlite3 /data/db/app.db 'select count(*) from Devices;'")
 
 # --- Backup ---
-BACKUP_LAST=$(safe "find $HOMELAB_DIR/backups -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-")
+BACKUP_LAST=$(safe "find \"$BACKUP_ROOT\" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-")
 BACKUP_SIZE=$(safe "[ -n \"$BACKUP_LAST\" ] && du -sh \"$BACKUP_LAST\" | awk '{print \$1}' || echo N/A")
 
 REPORT="📊 RPi Homelab Report${ALERTS_BLOCK}

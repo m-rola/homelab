@@ -1,0 +1,31 @@
+---
+# ── OS ──────────────────────────────────────────────────────────────────────
+hostname:     rpi
+timezone:     Europe/Warsaw
+swap_size:    1G
+ansible_user: pi
+ansible_become: true
+ansible_become_method: sudo
+ansible_become_password: "{{ vault_become_password }}"
+
+# ── Paths ───────────────────────────────────────────────────────────────────
+homelab_dir:    /home/pi/homelab
+homelab_repo:   https://github.com/m-rola/homelab.git
+homelab_branch: master
+
+# ── Services ─────────────────────────────────────────────────────────────────
+services:
+  - unbound
+  - pihole
+  - nginx
+  - uptime-kuma
+  - netalertx
+  - tailscale
+  - crowdsec
+
+# ── Secrets (values come from vault.yml — encrypted) ─────────────────────────
+pihole_password:    "{{ vault_pihole_password }}"
+ts_authkey:         "{{ vault_ts_authkey }}"
+telegram_bot_token: "{{ vault_telegram_bot_token }}"
+telegram_chat_id:   "{{ vault_telegram_chat_id }}"
+cf_api_token:       "{{ vault_cf_api_token }}"

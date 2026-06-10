@@ -1,0 +1,13 @@
+---
+# Copy to vault.yml, fill in real values, then encrypt:
+#   ansible-vault encrypt ansible/vault.yml
+#
+# Edit later:
+#   ansible-vault edit ansible/vault.yml
+
+vault_pihole_password:    "changeme"
+vault_ts_authkey:         "tskey-auth-xxxx"          # Tailscale: Admin > Keys > Generate auth key
+vault_telegram_bot_token: "1234567890:AABBccDDeeFF"  # BotFather: /newbot
+vault_telegram_chat_id:   "123456789"                # @userinfobot
+vault_cf_api_token:       "changeme"                 # Cloudflare: My Profile > API Tokens
+vault_become_password:    "changeme"                 # sudo password for ansible_user on the Pi

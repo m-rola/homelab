@@ -6,12 +6,18 @@ DATE=$(date +%Y-%m-%d_%H-%M)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOMELAB_DIR="$(dirname "$SCRIPT_DIR")"
 
-BACKUP_ROOT="$HOMELAB_DIR/backups"
+# Config — set in .env to override defaults
+_env_val() { grep -E "^${1}=" "$HOMELAB_DIR/.env" 2>/dev/null | cut -d= -f2- | head -1 || true; }
+
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-$(_env_val BACKUP_RETENTION_DAYS)}"
+BACKUP_RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
+
+_custom_root="$(_env_val BACKUP_ROOT)"
+BACKUP_ROOT="${BACKUP_ROOT:-${_custom_root:-$HOMELAB_DIR/backups}}"
+unset _custom_root; unset -f _env_val
+
 BACKUP_DIR="$BACKUP_ROOT/$DATE"
-
-LOG_FILE="$BACKUP_ROOT/backup.log"
-
-RETENTION_DAYS=14
+LOG_FILE="$HOMELAB_DIR/logs/backup.log"
 
 if ! sudo -n true 2>/dev/null; then
   echo "ERROR: sudo requires a password — backup cannot run unattended."
@@ -25,6 +31,8 @@ mkdir -p "$BACKUP_DIR"
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
+
+trap 'log "BACKUP FAILED"; "$SCRIPT_DIR/telegram.sh" "❌ Backup FAILED on rpi — check $LOG_FILE" 2>/dev/null || true' ERR
 
 backup_folder() {
   NAME=$1
@@ -82,12 +90,12 @@ log "All archives OK"
 log "Generating checksums"
 (cd "$BACKUP_DIR" && sha256sum ./*.tar.gz > checksums.sha256)
 
-log "Cleaning old backups older than $RETENTION_DAYS days"
+log "Cleaning old backups older than $BACKUP_RETENTION_DAYS days"
 
 find "$BACKUP_ROOT" \
   -maxdepth 1 \
   -type d \
-  -mtime +$RETENTION_DAYS \
+  -mtime +"$BACKUP_RETENTION_DAYS" \
   -exec rm -rf {} \;
 
 TOTAL=$(du -sh "$BACKUP_DIR" | awk '{print $1}')

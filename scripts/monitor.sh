@@ -18,7 +18,7 @@ send() {
 }
 
 # alert KEY IS_BAD MSG_BAD MSG_OK
-# Fires MSG_BAD on bad→good transition, MSG_OK on good→bad transition. Idempotent.
+# Fires MSG_BAD on good→bad transition, MSG_OK on bad→good transition. Idempotent.
 alert() {
   local key="$1" is_bad="$2" msg_bad="$3" msg_ok="$4"
   local state="$STATE_DIR/$key"

@@ -1,0 +1,11 @@
+---
+- name: reload sshd
+  service:
+    name: sshd
+    state: reloaded
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: restart timesyncd
+  service:
+    name: systemd-timesyncd
+    state: restarted
