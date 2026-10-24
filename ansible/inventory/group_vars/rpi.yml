@@ -21,7 +21,7 @@ services:
   - uptime-kuma
   - netalertx
   - tailscale
-  - crowdsec
+  # crowdsec — disabled, see scripts/services.sh
 
 # ── Secrets (values come from vault.yml — encrypted) ─────────────────────────
 pihole_password:    "{{ vault_pihole_password }}"
