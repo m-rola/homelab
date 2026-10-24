@@ -7,12 +7,14 @@ services:
       - no-new-privileges:true
 
     environment:
-      - COLLECTIONS=crowdsecurity/nginx
+      - COLLECTIONS=crowdsecurity/nginx-proxy-manager
       - TZ=Europe/Warsaw
 
     volumes:
       - ../../data/crowdsec/data:/var/lib/crowdsec/data
       - ../../data/crowdsec/config:/etc/crowdsec
+      - ../../config/crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ../../config/crowdsec/homelab-whitelist.yaml:/etc/crowdsec/parsers/s02-enrich/homelab-whitelist.yaml:ro
       - ../../data/nginx/logs:/var/log/nginx-proxy-manager:ro
     tmpfs:
       - /tmp

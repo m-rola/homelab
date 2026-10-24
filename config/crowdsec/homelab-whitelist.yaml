@@ -1,0 +1,10 @@
+# Never raise alerts/decisions for internal clients.
+# crowdsecurity/whitelists already covers RFC 1918; Tailscale CGNAT range is added here.
+name: homelab/whitelist
+description: "Whitelist LAN, Docker and Tailscale networks"
+whitelist:
+  reason: "homelab internal network"
+  cidr:
+    - "192.168.0.0/16"
+    - "172.16.0.0/12"
+    - "100.64.0.0/10"
