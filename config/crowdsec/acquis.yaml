@@ -1,0 +1,9 @@
+# CrowdSec log acquisition — mounted read-only over /etc/crowdsec/acquis.yaml
+# NPM writes one access/error log per proxy host into data/nginx/logs/,
+# mounted in the container at /var/log/nginx-proxy-manager/.
+# The nginx-proxy-manager type is required — NPM's log format differs from stock nginx.
+filenames:
+  - /var/log/nginx-proxy-manager/*_access.log
+  - /var/log/nginx-proxy-manager/*_error.log
+labels:
+  type: nginx-proxy-manager
