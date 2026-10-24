@@ -19,7 +19,7 @@ unset _custom_root; unset -f _env_val
 BACKUP_DIR="$BACKUP_ROOT/$DATE"
 LOG_FILE="$HOMELAB_DIR/logs/backup.log"
 
-if ! sudo -n true 2>/dev/null; then
+if ! sudo -n tar --version >/dev/null 2>&1; then
   echo "ERROR: sudo requires a password — backup cannot run unattended."
   echo "Fix: sudo visudo and add:"
   echo "  $(whoami) ALL=(ALL) NOPASSWD: /usr/bin/tar"
