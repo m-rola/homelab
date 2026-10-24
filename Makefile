@@ -18,7 +18,7 @@ help:
 	@echo "  make firewall            Apply firewall rules (sudo)"
 	@echo "  make install             Install cron jobs + logrotate"
 	@echo "  make aliases             Add homelab aliases to ~/.bashrc"
-	@echo "  make install-hooks       Configure git to use .githooks/ (pre-push AI review)"
+	@echo "  make install-hooks       Configure git to use .githooks/ (pre-push lint)"
 	@echo "  make logs                Tail update log"
 	@echo ""
 	@echo "Ansible (run from laptop, targets RPi over SSH)"
@@ -75,7 +75,7 @@ aliases:
 install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push
-	@echo "Git hooks installed — pre-push AI review active"
+	@echo "Git hooks installed — pre-push lint active"
 
 logs:
 	@tail -100 $(CURDIR)/logs/update.log 2>/dev/null || echo "No logs yet — run 'make update' first"
